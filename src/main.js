@@ -1,34 +1,42 @@
-const express = require('express');
-const session = require('express-session');
-const cors = require('cors');
-const mongoose = require('mongoose');
+const express = require("express");
+const session = require("express-session");
+const cors = require("cors");
+const mongoose = require("mongoose");
 
 // connect-mongo v5/v6 ESM/CJS interop tuzatilgan import:
-const MongoStore = require('connect-mongo').default || require('connect-mongo');
+const MongoStore = require("connect-mongo").default || require("connect-mongo");
 
-const { config } = require('dotenv');
+const { config } = require("dotenv");
 const app = express();
 
-const MONGO_URI = 'mongodb://localhost:27017/todo_session_db';
+const MONGO_URI = "mongodb://localhost:27017/todo_session_db";
 config({ quiet: true });
 
-mongoose.connect(MONGO_URI)
-  .then(() => console.log('MongoDB-ga muvaffaqiyatli ulandi'))
-  .catch(err => console.error('Baza ulanishida xato:', err));
+mongoose
+  .connect(MONGO_URI)
+  .then(() => console.log("MongoDB-ga muvaffaqiyatli ulandi"))
+  .catch((err) => console.error("Baza ulanishida xato:", err));
 
-app.use(cors({ origin: 'http://localhost:5173', credentials: true }));
+app.use(
+  cors({
+    origin: process.env.FRONT_URL || "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
-app.use(session({
-  secret: 'todo-maxfiy-kalit',
-  resave: false,
-  saveUninitialized: true,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI || MONGO_URI,
-    collectionName: 'todos'
+app.use(
+  session({
+    secret: "todo-maxfiy-kalit",
+    resave: false,
+    saveUninitialized: true,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI || MONGO_URI,
+      collectionName: "todos",
+    }),
+    cookie: { maxAge: 24 * 60 * 60 * 1000 },
   }),
-  cookie: { maxAge: 24 * 60 * 60 * 1000 }
-}));
+);
 
 app.use((req, res, next) => {
   if (!req.session.todos) {
@@ -37,9 +45,9 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/api/todos', (req, res) => res.json(req.session.todos));
+app.get("/api/todos", (req, res) => res.json(req.session.todos));
 
-app.post('/api/todos', (req, res) => {
+app.post("/api/todos", (req, res) => {
   const newTodo = { id: Date.now(), text: req.body.text, done: false };
   req.session.todos.push(newTodo);
 
@@ -49,19 +57,22 @@ app.post('/api/todos', (req, res) => {
   });
 });
 
-app.delete('/api/todos/:id', (req, res) => {
-  req.session.todos = req.session.todos.filter(t => t.id !== parseInt(req.params.id));
+app.delete("/api/todos/:id", (req, res) => {
+  req.session.todos = req.session.todos.filter(
+    (t) => t.id !== parseInt(req.params.id),
+  );
 
   req.session.save((err) => {
-    if (err) return res.status(500).json({ error: "Sessiyani yangilashda xato" });
+    if (err)
+      return res.status(500).json({ error: "Sessiyani yangilashda xato" });
     res.sendStatus(204);
   });
 });
 
 // Matnni tahrirlash va/yoki done holatini almashtirish
-app.patch('/api/todos/:id', (req, res) => {
+app.patch("/api/todos/:id", (req, res) => {
   const id = parseInt(req.params.id);
-  const todo = req.session.todos.find(t => t.id === id);
+  const todo = req.session.todos.find((t) => t.id === id);
 
   if (!todo) return res.status(404).json({ error: "Todo topilmadi" });
 
@@ -69,9 +80,10 @@ app.patch('/api/todos/:id', (req, res) => {
   if (req.body.done !== undefined) todo.done = req.body.done;
 
   req.session.save((err) => {
-    if (err) return res.status(500).json({ error: "Sessiyani yangilashda xato" });
+    if (err)
+      return res.status(500).json({ error: "Sessiyani yangilashda xato" });
     res.json(todo);
   });
 });
 
-app.listen(5000, () => console.log('Backend 5000-portda ishladi'));
+app.listen(5000, () => console.log("Backend 5000-portda ishladi"));
