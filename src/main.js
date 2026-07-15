@@ -12,6 +12,8 @@ const app = express();
 const MONGO_URI = "mongodb://localhost:27017/todo_session_db";
 config({ quiet: true });
 
+const FRONT_URL = process.env.FRONT_URL || "http://localhost:5173";
+
 mongoose
   .connect(MONGO_URI)
   .then(() => console.log("MongoDB-ga muvaffaqiyatli ulandi"))
@@ -19,7 +21,7 @@ mongoose
 
 app.use(
   cors({
-    origin: process.env.FRONT_URL || "http://localhost:5173",
+    origin: FRONT_URL,
     credentials: true,
   }),
 );
